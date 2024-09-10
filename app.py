@@ -1,146 +1,303 @@
 from flask import Flask, render_template, request, jsonify
-from expense_manager import ExpenseManager
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
+import json
+import os
+import logging
+from abc import ABC, abstractmethod
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
-manager = ExpenseManager("expenses.xlsx")
+
+class Expense(ABC):
+    def __init__(self, category, date, amount):
+        self.category = category
+        self.date = date
+        self.amount = float(amount)
+
+    @abstractmethod
+    def to_dict(self):
+        pass
+
+class SingleExpense(Expense):
+    def __init__(self, category, date, amount):
+        super().__init__(category, date, amount)
+
+    def to_dict(self):
+        return {
+            "category": self.category,
+            "date": self.date,
+            "amount": self.amount,
+            "isRecurring": False
+        }
+
+class RecurringExpense(Expense):
+    def __init__(self, category, date, amount, frequency):
+        super().__init__(category, date, amount)
+        self.frequency = frequency
+
+    def to_dict(self):
+        return {
+            "category": self.category,
+            "date": self.date,
+            "amount": self.amount,
+            "isRecurring": True,
+            "frequency": self.frequency
+        }
+
+    def get_occurrences(self, start_date, end_date):
+        occurrences = []
+        current_date = datetime.strptime(self.date, '%Y-%m-%d')
+        end = datetime.strptime(end_date, '%Y-%m-%d')
+
+        while current_date <= end:
+            if current_date >= datetime.strptime(start_date, '%Y-%m-%d'):
+                occurrences.append(current_date.strftime('%Y-%m-%d'))
+
+            if self.frequency == 'weekly':
+                current_date += timedelta(days=7)
+            elif self.frequency == 'monthly':
+                current_date = add_months(current_date, 1)
+
+        return occurrences
+
+def add_months(date, months):
+    month = date.month - 1 + months
+    year = date.year + month // 12
+    month = month % 12 + 1
+    day = min(date.day, calendar.monthrange(year, month)[1])
+    return date.replace(year=year, month=month, day=day)
+
+class ExpenseManager:
+    def __init__(self, expense_file, budget_file):
+        self.expense_file = expense_file
+        self.budget_file = budget_file
+
+    def load_expenses(self):
+        try:
+            with open(self.expense_file, 'r') as f:
+                expenses_data = json.load(f)
+            return [
+                RecurringExpense(
+                    category=exp['category'],
+                    date=exp['date'],
+                    amount=exp['amount'],
+                    frequency=exp['frequency']
+                ) if exp['isRecurring'] else
+                SingleExpense(
+                    category=exp['category'],
+                    date=exp['date'],
+                    amount=exp['amount']
+                )
+                for exp in expenses_data
+            ]
+        except FileNotFoundError:
+            return []
+        except json.JSONDecodeError as e:
+            logging.error(f"Error decoding JSON from {self.expense_file}: {e}")
+            return []
+
+    def save_expenses(self, expenses):
+        with open(self.expense_file, 'w') as f:
+            json.dump([exp.to_dict() for exp in expenses], f)
+
+    def load_budgets(self):
+        try:
+            with open(self.budget_file, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {
+                "indoorCooking": {"good": 500, "normal": 1000},
+                "outdoorDinners": {"good": 500, "normal": 1000},
+                "transportFees": {"good": 500, "normal": 1000},
+                "entertainment": {"good": 500, "normal": 1000},
+                "education": {"good": 500, "normal": 1000},
+                "shopping": {"good": 500, "normal": 1000},
+                "medicalFees": {"good": 500, "normal": 1000}
+            }
+
+    def save_budgets(self, budgets):
+        with open(self.budget_file, 'w') as f:
+            json.dump(budgets, f)
+
+    def get_budget_status(self):
+        expenses = self.load_expenses()
+        budgets = self.load_budgets()
+
+        now = datetime.now()
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
+
+        weekly_status = {}
+        monthly_status = {category: {"amount": 0, "status": "Good"} for category in budgets}
+
+        for expense in expenses:
+            if isinstance(expense, RecurringExpense):
+                occurrences = expense.get_occurrences(current_month_start.strftime('%Y-%m-%d'), next_month_start.strftime('%Y-%m-%d'))
+                for date in occurrences:
+                    self.update_status(weekly_status, monthly_status, expense, date, budgets)
+            else:
+                self.update_status(weekly_status, monthly_status, expense, expense.date, budgets)
+
+        for category, budget in budgets.items():
+            monthly_amount = monthly_status[category]['amount']
+            if monthly_amount >= budget['normal'] * 4:
+                monthly_status[category]['status'] = "Over Budget"
+            elif monthly_amount >= budget['good'] * 4:
+                monthly_status[category]['status'] = "Normal"
+
+        return {"weekly": weekly_status, "total": monthly_status}
+
+    def update_status(self, weekly_status, monthly_status, expense, date, budgets):
+        expense_date = datetime.strptime(date, '%Y-%m-%d')
+        current_month_start = expense_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
+
+        if current_month_start <= expense_date < next_month_start:
+            week_number = expense_date.strftime('%Y-W%W')
+            if week_number not in weekly_status:
+                weekly_status[week_number] = {category: 0 for category in budgets}
+            weekly_status[week_number][expense.category] += expense.amount
+            monthly_status[expense.category]['amount'] += expense.amount
+
+    def get_expense_summary(self, num_days):
+        expenses = self.load_expenses()
+        summary = []
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=num_days)
+
+        for i in range(num_days):
+            current_date = start_date + timedelta(days=i)
+            daily_total = sum(
+                expense.amount
+                for expense in expenses
+                if datetime.strptime(expense.date, '%Y-%m-%d').date() == current_date
+            )
+            summary.append({"date": current_date.strftime('%Y-%m-%d'), "total": daily_total})
+
+        return summary
+
+    def get_current_week_expenses(self):
+        expenses = self.load_expenses()
+        now = datetime.now()
+        start_of_week = now - timedelta(days=now.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+
+        current_week_expenses = []
+        for expense in expenses:
+            expense_date = datetime.strptime(expense.date, '%Y-%m-%d')
+            if start_of_week <= expense_date <= end_of_week:
+                if isinstance(expense, RecurringExpense):
+                    if expense.frequency == 'weekly':
+                        current_week_expenses.append(expense)
+                    elif expense.frequency == 'monthly' and expense_date.day == now.day:
+                        current_week_expenses.append(expense)
+                else:
+                    current_week_expenses.append(expense)
+
+        return sum(exp.amount for exp in current_week_expenses)
+
+expense_manager = ExpenseManager('expenses.json', 'budgets.json')
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/api/add_expense', methods=['POST'])
-def add_expense():
-    data = request.json
-    success = manager.add_expense(data['category'], data['amount'], data['date'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "expenses": [e.to_dict() for e in manager.get_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to add expense"}), 400
-
-@app.route('/api/add_recurring_expense', methods=['POST'])
-def add_recurring_expense():
-    data = request.json
-    success = manager.add_recurring_expense(data['category'], data['amount'], data['frequency'], data['date'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "recurring_expenses": [e.to_dict() for e in manager.get_recurring_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to add recurring expense"}), 400
-
-@app.route('/api/remove_expense', methods=['POST'])
-def remove_expense():
-    data = request.json
-    success = manager.remove_expense(data['index'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "expenses": [e.to_dict() for e in manager.get_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to remove expense"}), 400
-
-@app.route('/api/remove_recurring_expense', methods=['POST'])
-def remove_recurring_expense():
-    data = request.json
-    success = manager.remove_recurring_expense(data['index'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "recurring_expenses": [e.to_dict() for e in manager.get_recurring_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to remove recurring expense"}), 400
-
-@app.route('/api/edit_expense', methods=['POST'])
-def edit_expense():
-    data = request.json
-    success = manager.edit_expense(data['index'], data['category'], data['amount'], data['date'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "expenses": [e.to_dict() for e in manager.get_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to edit expense"}), 400
-
-@app.route('/api/edit_recurring_expense', methods=['POST'])
-def edit_recurring_expense():
-    data = request.json
-    success = manager.edit_recurring_expense(data['index'], data['category'], data['amount'], data['frequency'], data['date'])
-    if success:
-        return jsonify({
-            "status": "success",
-            "recurring_expenses": [e.to_dict() for e in manager.get_recurring_expenses()]
-        })
-    else:
-        return jsonify({"status": "error", "message": "Failed to edit recurring expense"}), 400
-
-@app.route('/api/get_expenses', methods=['GET'])
-def get_expenses():
-    return jsonify({"expenses": [e.to_dict() for e in manager.get_expenses()]})
-
-@app.route('/api/get_recurring_expenses', methods=['GET'])
-def get_recurring_expenses():
-    return jsonify({"recurring_expenses": [e.to_dict() for e in manager.get_recurring_expenses()]})
-
-@app.route('/api/get_budget_status', methods=['GET'])
-def get_budget_status():
-    return jsonify(manager.get_budget_status())
-
-@app.route('/api/update_budget_limit', methods=['POST'])
-def update_budget_limit():
-    data = request.json
-    manager.update_budget_limit(data['category'], data['goodLimit'], data['normalLimit'])
-    return jsonify({"status": "success", "budget_status": manager.get_budget_status()})
-
-@app.route('/api/clear_data', methods=['POST'])
-def clear_data():
-    manager.clear_data()
-    return jsonify({"status": "success"})
-
-@app.route('/api/send_reminder', methods=['POST'])
-def send_reminder():
-    data = request.json
-    manager.send_weekly_reminder(data['email'])
-    return jsonify({"status": "success"})
-
-@app.route('/api/get_expenses_for_range', methods=['GET'])
-def get_expenses_for_range():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    expenses = manager.get_expenses_for_range(start_date, end_date)
-    return jsonify({"expenses": [e.to_dict() for e in expenses]})
-
-@app.route('/api/get_weekly_expense_alarm', methods=['GET'])
-def get_weekly_expense_alarm():
-    alarms = manager.get_weekly_expense_alarm()
-    return jsonify({"alarms": alarms})
-
-@app.route('/api/get_monthly_calendar', methods=['GET'])
-def get_monthly_calendar():
-    year = request.args.get('year')
-    month = request.args.get('month')
-
+@app.route('/api/expenses', methods=['GET', 'POST', 'DELETE'])
+def handle_expenses():
     try:
-        year = int(year)
-        month = int(month)
+        if request.method == 'GET':
+            expenses = expense_manager.load_expenses()
+            return jsonify([exp.to_dict() for exp in expenses])
+        elif request.method == 'POST':
+            expenses = expense_manager.load_expenses()
+            new_expense_data = request.json
+            if new_expense_data.get('isRecurring'):
+                new_expense = RecurringExpense(
+                    category=new_expense_data['category'],
+                    date=new_expense_data['date'],
+                    amount=new_expense_data['amount'],
+                    frequency=new_expense_data['frequency']
+                )
+            else:
+                new_expense = SingleExpense(
+                    category=new_expense_data['category'],
+                    date=new_expense_data['date'],
+                    amount=new_expense_data['amount']
+                )
+            expenses.append(new_expense)
+            expense_manager.save_expenses(expenses)
+            return jsonify({"status": "success"}), 201
+        elif request.method == 'DELETE':
+            expense_manager.save_expenses([])
+            return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.exception(f"An error occurred in handle_expenses: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-        month_expenses = manager.get_monthly_calendar(year, month)
-        cal = calendar.monthcalendar(year, month)
+@app.route('/api/expenses/<int:index>', methods=['PUT', 'DELETE'])
+def handle_expense(index):
+    try:
+        expenses = expense_manager.load_expenses()
+        if request.method == 'PUT':
+            updated_expense_data = request.json
+            if updated_expense_data.get('isRecurring'):
+                updated_expense = RecurringExpense(
+                    category=updated_expense_data['category'],
+                    date=updated_expense_data['date'],
+                    amount=updated_expense_data['amount'],
+                    frequency=updated_expense_data['frequency']
+                )
+            else:
+                updated_expense = SingleExpense(
+                    category=updated_expense_data['category'],
+                    date=updated_expense_data['date'],
+                    amount=updated_expense_data['amount']
+                )
+            expenses[index] = updated_expense
+            expense_manager.save_expenses(expenses)
+            return jsonify({"status": "success"}), 200
+        elif request.method == 'DELETE':
+            del expenses[index]
+            expense_manager.save_expenses(expenses)
+            return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.exception(f"An error occurred in handle_expense: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-        return jsonify({
-            "calendar": cal,
-            "expenses": {str(day): [e.to_dict() for e in expenses] for day, expenses in month_expenses.items()}
-        })
-    except ValueError:
-        return jsonify({"error": "Invalid year or month provided"}), 400
+@app.route('/api/budgets', methods=['GET', 'PUT'])
+def handle_budgets():
+    try:
+        if request.method == 'GET':
+            return jsonify(expense_manager.load_budgets())
+        elif request.method == 'PUT':
+            new_budgets = request.json
+            expense_manager.save_budgets(new_budgets)
+            return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.exception(f"An error occurred in handle_budgets: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/api/budget_status', methods=['GET'])
+def get_budget_status():
+    try:
+        status = expense_manager.get_budget_status()
+        current_week_expenses = expense_manager.get_current_week_expenses()
+        status['current_week_expenses'] = current_week_expenses
+        return jsonify(status)
+    except Exception as e:
+        logging.exception(f"An error occurred in get_budget_status: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/api/expense_summary/<int:days>', methods=['GET'])
+def get_expense_summary(days):
+    try:
+        summary = expense_manager.get_expense_summary(days)
+        return jsonify(summary)
+    except Exception as e:
+        logging.exception(f"An error occurred in get_expense_summary: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
