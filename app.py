@@ -151,15 +151,13 @@ class ExpenseManager:
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
-        current_month_start = expense_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
+        week_start = expense_date - timedelta(days=expense_date.weekday())
+        week_key = week_start.strftime('%Y-W%W')
 
-        if current_month_start <= expense_date < next_month_start:
-            week_number = expense_date.strftime('%Y-W%W')
-            if week_number not in weekly_status:
-                weekly_status[week_number] = {category: 0 for category in budgets}
-            weekly_status[week_number][expense.category] += expense.amount
-            monthly_status[expense.category]['amount'] += expense.amount
+        if week_key not in weekly_status:
+            weekly_status[week_key] = {category: 0 for category in budgets}
+        weekly_status[week_key][expense.category] += expense.amount
+        monthly_status[expense.category]['amount'] += expense.amount
 
     def get_expense_summary(self, num_days):
         expenses = self.load_expenses()
