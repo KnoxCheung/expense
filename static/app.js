@@ -144,9 +144,12 @@ function updateExpenseList() {
 
   const groupedExpenses = expenses.reduce((groups, expense) => {
     const expenseDate = new Date(expense.date);
-    const weekStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate() - expenseDate.getDay() + 1);
+    const weekStart = new Date(expenseDate);
+    weekStart.setDate(expenseDate.getDate() - expenseDate.getDay() + (expenseDate.getDay() === 0 ? -6 : 1));
+    weekStart.setHours(0, 0, 0, 0);
     const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
     const weekKey = weekStart.toISOString().split('T')[0];
     if (!groups[weekKey]) {
       groups[weekKey] = {
