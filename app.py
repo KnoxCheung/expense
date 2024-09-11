@@ -84,7 +84,7 @@ class ExpenseManager:
                     date=exp['date'],
                     amount=exp['amount'],
                     frequency=exp['frequency']
-                ) if exp['isRecurring'] else
+                ) if exp.get('isRecurring') else
                 SingleExpense(
                     category=exp['category'],
                     date=exp['date'],
@@ -153,9 +153,9 @@ class ExpenseManager:
         if isinstance(expense_date, str):
             expense_date = datetime.strptime(expense_date, '%Y-%m-%d')
         
-        # Get the Thursday of the week (to align with ISO week calculation)
-        thursday = expense_date + timedelta(days=(3 - expense_date.weekday() + 7) % 7)
-        return f"{thursday.year}-W{thursday.isocalendar()[1]:02d}"
+        # Get the Monday of the week
+        monday = expense_date - timedelta(days=expense_date.weekday())
+        return f"{monday.year}-W{monday.isocalendar()[1]:02d}"
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
@@ -193,19 +193,13 @@ class ExpenseManager:
         start_of_week = now - timedelta(days=now.weekday())
         end_of_week = start_of_week + timedelta(days=6)
         
-        current_week_expenses = []
-        for expense in expenses:
-            expense_date = datetime.strptime(expense.date, '%Y-%m-%d')
-            if start_of_week <= expense_date <= end_of_week:
-                if isinstance(expense, RecurringExpense):
-                    if expense.frequency == 'weekly':
-                        current_week_expenses.append(expense)
-                    elif expense.frequency == 'monthly' and expense_date.day == now.day:
-                        current_week_expenses.append(expense)
-                else:
-                    current_week_expenses.append(expense)
+        current_week_expenses = sum(
+            expense.amount
+            for expense in expenses
+            if start_of_week <= datetime.strptime(expense.date, '%Y-%m-%d') <= end_of_week
+        )
         
-        return sum(exp.amount for exp in current_week_expenses)
+        return current_week_expenses
 
 expense_manager = ExpenseManager('expenses.json', 'budgets.json')
 
