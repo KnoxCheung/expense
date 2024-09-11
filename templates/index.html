@@ -15,51 +15,97 @@
             href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
         />
         <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <style>
+            @keyframes gradientBG {
+                0% {
+                    background-position: 0% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
+            
+            body {
+                background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+                background-size: 400% 400%;
+                animation: gradientBG 15s ease infinite;
+            }
+            
+            .title-animation {
+                display: inline-block;
+                animation: bounce 1s ease infinite;
+            }
+            
+            @keyframes bounce {
+                0%, 100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-10px);
+                }
+            }
+            
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            }
+        </style>
     </head>
     <body class="bg-gray-100">
         <div class="container mx-auto px-4 py-8">
-            <h1 class="text-3xl font-bold mb-8 text-center">
-                Weekly and Monthly Expense Tracker
+            <h1 class="text-3xl font-bold mb-8 text-center text-white">
+                <span class="title-animation">Weekly</span> 
+                <span class="title-animation" style="animation-delay: 0.1s;">and</span> 
+                <span class="title-animation" style="animation-delay: 0.2s;">Monthly</span> 
+                <span class="title-animation" style="animation-delay: 0.3s;">Expense</span> 
+                <span class="title-animation" style="animation-delay: 0.4s;">Tracker</span>
             </h1>
             <div class="flex flex-wrap -mx-4">
                 <div class="w-full lg:w-1/2 px-4 mb-8">
-                    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-8 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Add/Edit Expense
                         </h2>
                         <div class="flex justify-between mb-4">
                             <i
-                                class="fas fa-utensils text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-utensils text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="indoorCooking"
                                 title="Indoor Cooking"
                             ></i>
                             <i
-                                class="fas fa-hamburger text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-hamburger text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="outdoorDinners"
                                 title="Outdoor Dinners"
                             ></i>
                             <i
-                                class="fas fa-bus text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-bus text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="transportFees"
                                 title="Transport Fees"
                             ></i>
                             <i
-                                class="fas fa-film text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-film text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="entertainment"
                                 title="Entertainment"
                             ></i>
                             <i
-                                class="fas fa-graduation-cap text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-graduation-cap text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="education"
                                 title="Education"
                             ></i>
                             <i
-                                class="fas fa-shopping-cart text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-shopping-cart text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="shopping"
                                 title="Shopping"
                             ></i>
                             <i
-                                class="fas fa-hospital text-2xl cursor-pointer hover:text-green-500"
+                                class="fas fa-hospital text-2xl cursor-pointer hover:text-green-500 transition-colors duration-300"
                                 data-category="medicalFees"
                                 title="Medical Fees"
                             ></i>
@@ -131,14 +177,14 @@
                             <button
                                 type="submit"
                                 id="submitBtn"
-                                class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                                class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors duration-300"
                                 aria-label="Add or update expense"
                             >
                                 Add Expense
                             </button>
                         </form>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Expense List
                         </h2>
@@ -148,7 +194,7 @@
                         ></div>
                         <button
                             id="clearAllData"
-                            class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600 mt-4"
+                            class="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600 transition-colors duration-300 mt-4"
                             aria-label="Clear all expense data"
                         >
                             Clear All Data
@@ -156,7 +202,7 @@
                     </div>
                 </div>
                 <div class="w-full lg:w-1/2 px-4 mb-8">
-                    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-8 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Expense Summary
                         </h2>
@@ -164,7 +210,7 @@
                             <canvas id="pieChart"></canvas>
                         </div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-8 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Budget Status
                         </h2>
@@ -173,7 +219,7 @@
                             class="space-y-4 max-h-96 overflow-y-auto"
                         ></div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-8 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Weekly Reminder
                         </h2>
@@ -182,7 +228,7 @@
                             class="text-lg font-medium"
                         ></div>
                     </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                         <h2 class="text-2xl font-semibold mb-4">
                             Budget Settings
                         </h2>
@@ -191,7 +237,7 @@
                         </div>
                         <button
                             id="updateBudgetsBtn"
-                            class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 mt-4"
+                            class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-colors duration-300 mt-4"
                             aria-label="Update budget settings"
                         >
                             Update Budgets
