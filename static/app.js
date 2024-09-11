@@ -147,7 +147,6 @@ function updateExpenseList() {
     const weekStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate() - expenseDate.getDay() + 1);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
     const weekKey = weekStart.toISOString().split('T')[0];
     if (!groups[weekKey]) {
       groups[weekKey] = {
@@ -167,6 +166,8 @@ function updateExpenseList() {
     const weekBlock = document.createElement("div");
     weekBlock.className = "mb-4";
     weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekData.start.toLocaleDateString()} to ${weekData.end.toLocaleDateString()}</h3>`;
+
+    weekData.expenses.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     weekData.expenses.forEach((expense) => {
       const categoryName = EXPENSE_CATEGORIES.find(

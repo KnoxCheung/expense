@@ -123,8 +123,8 @@ class ExpenseManager:
 
     def get_week_start_end(self, date):
         start = date - timedelta(days=date.weekday())
-        end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
-        return start, end
+        end = start + timedelta(days=6)
+        return start.replace(hour=0, minute=0, second=0, microsecond=0), end.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     def get_budget_status(self):
         expenses = self.load_expenses()
@@ -198,19 +198,13 @@ class ExpenseManager:
         now = datetime.now()
         week_start, week_end = self.get_week_start_end(now)
 
-        current_week_expenses = []
-        for expense in expenses:
-            expense_date = datetime.strptime(expense.date, '%Y-%m-%d')
-            if week_start <= expense_date <= week_end:
-                if isinstance(expense, RecurringExpense):
-                    if expense.frequency == 'weekly':
-                        current_week_expenses.append(expense)
-                    elif expense.frequency == 'monthly' and expense_date.day == now.day:
-                        current_week_expenses.append(expense)
-                else:
-                    current_week_expenses.append(expense)
+        current_week_expenses = sum(
+            expense.amount
+            for expense in expenses
+            if week_start <= datetime.strptime(expense.date, '%Y-%m-%d') <= week_end
+        )
 
-        return sum(exp.amount for exp in current_week_expenses)
+        return current_week_expenses
 
 expense_manager = ExpenseManager('expenses.json', 'budgets.json')
 
