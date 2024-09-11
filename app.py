@@ -190,7 +190,7 @@ class ExpenseManager:
     def get_current_week_expenses(self):
         expenses = self.load_expenses()
         now = datetime.now()
-        start_of_week = now - timedelta(days=now.weekday() + 1)  # Sunday
+        start_of_week = now - timedelta(days=(now.weekday() + 1) % 7)  # Sunday
         end_of_week = start_of_week + timedelta(days=6)  # Saturday
         
         current_week_expenses = sum(
