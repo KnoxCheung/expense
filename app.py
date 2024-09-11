@@ -123,7 +123,7 @@ class ExpenseManager:
 
     def get_week_start_end(self, date):
         start = date - timedelta(days=date.weekday())
-        end = start + timedelta(days=6)
+        end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
         return start, end
 
     def get_budget_status(self):

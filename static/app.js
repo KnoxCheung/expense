@@ -147,6 +147,7 @@ function updateExpenseList() {
     const weekStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate() - expenseDate.getDay() + 1);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
     const weekKey = weekStart.toISOString().split('T')[0];
     if (!groups[weekKey]) {
       groups[weekKey] = {
