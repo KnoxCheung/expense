@@ -153,9 +153,10 @@ class ExpenseManager:
         if isinstance(expense_date, str):
             expense_date = datetime.strptime(expense_date, '%Y-%m-%d')
         
-        # Get the Sunday of the week (considering Sunday as the first day of the week)
-        sunday = expense_date - timedelta(days=expense_date.weekday() + 1)
-        return f"{sunday.year}-W{sunday.isocalendar()[1]:02d}"
+        # Adjust the date to consider Sunday as the start of the week
+        adjusted_date = expense_date - timedelta(days=1)
+        iso_year, iso_week, _ = adjusted_date.isocalendar()
+        return f"{iso_year}-W{iso_week:02d}"
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
