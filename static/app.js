@@ -147,24 +147,27 @@ function updateExpenseList() {
     const weekStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate() - expenseDate.getDay() + 1);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    const weekKey = `${weekStart.getFullYear()}-W${String(weekStart.getWeek()).padStart(2, "0")} (${weekStart.getMonth() + 1}-${String(weekStart.getDate()).padStart(2, "0")} to ${weekEnd.getMonth() + 1}-${String(weekEnd.getDate()).padStart(2, "0")})`;
+    const weekKey = weekStart.toISOString().split('T')[0];
     if (!groups[weekKey]) {
-      groups[weekKey] = [];
+      groups[weekKey] = {
+        start: weekStart,
+        end: weekEnd,
+        expenses: []
+      };
     }
-    groups[weekKey].push(expense);
+    groups[weekKey].expenses.push(expense);
     return groups;
   }, {});
 
-  const sortedWeeks = Object.keys(groupedExpenses).sort((a, b) =>
-    b.localeCompare(a)
-  );
+  const sortedWeeks = Object.keys(groupedExpenses).sort((a, b) => b.localeCompare(a));
 
   sortedWeeks.forEach((weekKey) => {
+    const weekData = groupedExpenses[weekKey];
     const weekBlock = document.createElement("div");
     weekBlock.className = "mb-4";
-    weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekKey}</h3>`;
+    weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekData.start.toLocaleDateString()} to ${weekData.end.toLocaleDateString()}</h3>`;
 
-    groupedExpenses[weekKey].forEach((expense, index) => {
+    weekData.expenses.forEach((expense) => {
       const categoryName = EXPENSE_CATEGORIES.find(
         (cat) => cat.key === expense.category
       ).name;
@@ -268,13 +271,13 @@ async function updateBudgetStatus() {
     weeklyStatusDiv.innerHTML =
       "<h3 class='text-xl font-semibold mb-4'>Weekly Budget Status</h3>";
 
-    Object.entries(status.weekly).forEach(([week, categories]) => {
+    Object.entries(status.weekly).forEach(([weekStart, weekData]) => {
       const weekDiv = document.createElement("div");
       weekDiv.className = "mb-4 p-4 bg-white rounded shadow";
-      weekDiv.innerHTML = `<h4 class="font-bold text-lg mb-2">Week ${week}</h4>`;
+      weekDiv.innerHTML = `<h4 class="font-bold text-lg mb-2">Week of ${new Date(weekStart).toLocaleDateString()} to ${new Date(weekData.end).toLocaleDateString()}</h4>`;
 
       EXPENSE_CATEGORIES.forEach((category) => {
-        const amount = categories[category.key] || 0;
+        const amount = weekData.expenses[category.key] || 0;
         const weeklyStatus = getStatus(amount, category.budget);
         const statusClass = getStatusClass(weeklyStatus);
 
@@ -357,10 +360,8 @@ async function updateWeeklyReminder() {
     );
     console.log("Total weekly budget:", totalWeeklyBudget);
 
-    const now = new Date();
-    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekStart = new Date(status.current_week.start);
+    const weekEnd = new Date(status.current_week.end);
 
     let message, className;
     if (currentWeekExpenses < totalWeeklyBudget * 0.8) {
@@ -418,17 +419,6 @@ function showNotification(message, type) {
     notification.remove();
   }, 3000);
 }
-
-// Helper function to get week number
-Date.prototype.getWeek = function () {
-  var d = new Date(
-    Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()),
-  );
-  var dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-};
 
 function displayBudgets(budgets) {
   const budgetContainer = document.getElementById("budgetContainer");

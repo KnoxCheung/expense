@@ -153,16 +153,27 @@ class ExpenseManager:
             elif monthly_amount >= budget['good'] * 4:
                 monthly_status[category]['status'] = "Normal"
 
-        return {"weekly": weekly_status, "total": monthly_status}
+        return {
+            "weekly": weekly_status,
+            "total": monthly_status,
+            "current_week": {
+                "start": current_week_start.strftime('%Y-%m-%d'),
+                "end": current_week_end.strftime('%Y-%m-%d')
+            }
+        }
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets, current_week_start, current_week_end):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
         week_start, week_end = self.get_week_start_end(expense_date)
-        week_key = week_start.strftime('%Y-W%W')
+        week_key = week_start.strftime('%Y-%m-%d')
 
         if week_key not in weekly_status:
-            weekly_status[week_key] = {category: 0 for category in budgets}
-        weekly_status[week_key][expense.category] += expense.amount
+            weekly_status[week_key] = {
+                "start": week_start.strftime('%Y-%m-%d'),
+                "end": week_end.strftime('%Y-%m-%d'),
+                "expenses": {category: 0 for category in budgets}
+            }
+        weekly_status[week_key]["expenses"][expense.category] += expense.amount
         monthly_status[expense.category]['amount'] += expense.amount
 
     def get_expense_summary(self, num_days):
