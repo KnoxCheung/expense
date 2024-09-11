@@ -1,72 +1,75 @@
 # Weekly and Monthly Expense Tracker
 
-This is a web-based application for tracking personal expenses on a weekly and monthly basis. It allows users to add, edit, and delete expenses, set budgets for different categories, and view their spending patterns through visualizations and summaries.
+This web application helps users track their expenses on a weekly and monthly basis, providing insights into spending habits and budget adherence.
 
 ## Features
 
 - Add, edit, and delete expenses
-- Categorize expenses (e.g., Indoor Cooking, Outdoor Dinners, Transport Fees)
-- Support for one-time and recurring expenses (weekly or monthly)
-- Set and update budgets for each expense category
-- View expenses grouped by week
-- Pie chart visualization of expenses by category
-- Weekly and monthly budget status reports
-- Weekly spending reminder
-- 30-day expense summary
+- Categorize expenses (e.g., indoor cooking, outdoor dinners, transport fees)
+- Set and manage budgets for different expense categories
+- View expenses grouped by week (Monday to Sunday)
+- Visualize expense distribution with a pie chart
+- Get weekly budget status updates and reminders
+- See monthly budget status across all categories
 
-## Technologies Used
+## Technical Stack
 
 - Backend: Python with Flask
-- Frontend: HTML, CSS (Tailwind CSS), JavaScript
-- Charts: Chart.js
-- Date Picker: Flatpickr
+- Frontend: HTML, CSS (Tailwind CSS), and JavaScript
+- Data Storage: JSON files
 
-## Setup and Installation
+## Project Structure
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/KnoxCheung/expense.git
-   cd expense
-   ```
+- `app.py`: Flask backend application
+- `static/app.js`: Frontend JavaScript
+- `templates/index.html`: Main HTML template
+- `expenses.json`: JSON file storing expense data
+- `budgets.json`: JSON file storing budget data
 
-2. Set up a virtual environment (optional but recommended):
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-   ```
+## Setup and Running
 
-3. Install the required packages:
+1. Ensure you have Python 3.7+ installed
+2. Install required Python packages:
    ```
-   pip install -r requirements.txt
+   pip install flask
    ```
-
-4. Run the Flask application:
+3. Run the Flask application:
    ```
    python app.py
    ```
+4. Open a web browser and navigate to `http://localhost:5000`
 
-5. Open a web browser and navigate to `http://localhost:5000` to use the application.
+## Backend Design
 
-## File Structure
+The backend is designed with the following constraints:
+- Uses flow control (if-else, for, while)
+- Utilizes lists and dictionaries
+- Implements the range() function
+- Has multiple classes, including inheritance
+- Reads and writes files
+- Implements exception handling
+- Uses three or more standard modules (datetime, json, logging)
 
-- `app.py`: The main Flask application (backend)
-- `static/app.js`: Frontend JavaScript code
-- `templates/index.html`: HTML template for the single-page application
-- `expenses.json`: JSON file to store expense data
-- `budgets.json`: JSON file to store budget data
+## Frontend Design
 
-## Usage
+The frontend is built using vanilla JavaScript and interacts with the backend via RESTful API calls. It dynamically updates the UI based on user actions and data changes.
 
-1. Add an expense by filling out the form and clicking "Add Expense"
-2. Edit an expense by clicking the "Edit" button next to an existing expense
-3. Delete an expense by clicking the "Delete" button next to an existing expense
-4. Update category budgets in the "Budget Settings" section
-5. View your expense summary in the pie chart
-6. Check your budget status in the "Weekly Budget Status" and "Monthly Budget Status" sections
-7. The "Weekly Reminder" will give you a quick overview of your spending for the current week
+## Recent Updates
+
+- Fixed expense grouping issue to ensure expenses are correctly grouped into weeks (Monday to Sunday)
+- Improved consistency between expense list, budget status, and weekly reminder date ranges
+
+## Future Improvements
+
+- Implement user authentication
+- Add data visualization for expense trends over time
+- Create a mobile app version
+- Integrate with financial institutions for automatic expense tracking
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
+
+This project is open source and available under the [MIT License](LICENSE).
