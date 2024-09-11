@@ -1,3 +1,4 @@
+```python
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 import calendar
@@ -155,10 +156,13 @@ class ExpenseManager:
         next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
 
         if current_month_start <= expense_date < next_month_start:
-            week_number = expense_date.strftime('%Y-W%W')
-            if week_number not in weekly_status:
-                weekly_status[week_number] = {category: 0 for category in budgets}
-            weekly_status[week_number][expense.category] += expense.amount
+            # Calculate the correct week number
+            week_number = expense_date.isocalendar()[1]
+            week_key = f"{expense_date.year}-W{week_number:02d}"
+            
+            if week_key not in weekly_status:
+                weekly_status[week_key] = {category: 0 for category in budgets}
+            weekly_status[week_key][expense.category] += expense.amount
             monthly_status[expense.category]['amount'] += expense.amount
 
     def get_expense_summary(self, num_days):
@@ -183,7 +187,7 @@ class ExpenseManager:
         now = datetime.now()
         start_of_week = now - timedelta(days=now.weekday())
         end_of_week = start_of_week + timedelta(days=6)
-
+        
         current_week_expenses = []
         for expense in expenses:
             expense_date = datetime.strptime(expense.date, '%Y-%m-%d')
@@ -195,7 +199,7 @@ class ExpenseManager:
                         current_week_expenses.append(expense)
                 else:
                     current_week_expenses.append(expense)
-
+        
         return sum(exp.amount for exp in current_week_expenses)
 
 expense_manager = ExpenseManager('expenses.json', 'budgets.json')

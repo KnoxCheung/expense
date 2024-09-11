@@ -69,4 +69,8 @@ This is a web-based application for tracking personal expenses on a weekly and m
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+If all else fails, try manually installing each dependency:
+   ```
+   pip install Flask==2.0.1
+   pip install Werkzeug==2.0.1
+   pip install python-dateutil==2.8.2
