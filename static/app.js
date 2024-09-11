@@ -134,8 +134,7 @@ function updateExpenseList() {
 
     const groupedExpenses = expenses.reduce((groups, expense) => {
         const expenseDate = new Date(expense.date);
-        const weekStart = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate() - expenseDate.getDay() + 1);
-        const weekKey = `${weekStart.getFullYear()}-W${String(getWeekNumber(weekStart)).padStart(2, "0")}`;
+        const weekKey = getWeekKey(expenseDate);
         if (!groups[weekKey]) {
             groups[weekKey] = [];
         }
@@ -168,6 +167,14 @@ function updateExpenseList() {
 
         expenseList.appendChild(weekBlock);
     });
+}
+
+function getWeekKey(date) {
+    // Get the Thursday of the week (to align with ISO week calculation)
+    const thursday = new Date(date.getTime() + ((3 - ((date.getDay() + 6) % 7)) * 86400000));
+    const year = thursday.getFullYear();
+    const week = getWeekNumber(thursday);
+    return `${year}-W${week.toString().padStart(2, '0')}`;
 }
 
 function getWeekNumber(d) {

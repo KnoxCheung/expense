@@ -153,9 +153,9 @@ class ExpenseManager:
         if isinstance(expense_date, str):
             expense_date = datetime.strptime(expense_date, '%Y-%m-%d')
         
-        start_of_week = expense_date - timedelta(days=expense_date.weekday())
-        week_number = start_of_week.isocalendar()[1]
-        return f"{start_of_week.year}-W{week_number:02d}"
+        # Get the Thursday of the week (to align with ISO week calculation)
+        thursday = expense_date + timedelta(days=(3 - expense_date.weekday() + 7) % 7)
+        return f"{thursday.year}-W{thursday.isocalendar()[1]:02d}"
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
