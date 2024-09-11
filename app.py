@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import calendar
 import json
 import os
@@ -149,15 +149,21 @@ class ExpenseManager:
 
         return {"weekly": weekly_status, "total": monthly_status}
 
+    def get_week_key(self, expense_date):
+        if isinstance(expense_date, str):
+            expense_date = datetime.strptime(expense_date, '%Y-%m-%d')
+        
+        start_of_week = expense_date - timedelta(days=expense_date.weekday())
+        week_number = start_of_week.isocalendar()[1]
+        return f"{start_of_week.year}-W{week_number:02d}"
+
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
         current_month_start = expense_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
 
         if current_month_start <= expense_date < next_month_start:
-            # Calculate the correct week number
-            week_number = expense_date.isocalendar()[1]
-            week_key = f"{expense_date.year}-W{week_number:02d}"
+            week_key = self.get_week_key(expense_date)
             
             if week_key not in weekly_status:
                 weekly_status[week_key] = {category: 0 for category in budgets}
