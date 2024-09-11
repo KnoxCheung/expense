@@ -170,7 +170,7 @@ function updateExpenseList() {
 
 function getWeekKey(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() - d.getUTCDay() + 1);
+    d.setUTCDate(d.getUTCDate() - d.getUTCDay());
     const year = d.getUTCFullYear();
     const week = getWeekNumber(d);
     return `${year}-W${week.toString().padStart(2, '0')}`;
@@ -178,20 +178,20 @@ function getWeekKey(date) {
 
 function getWeekNumber(d) {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
 }
 
 function getDateOfISOWeek(w, y) {
-    const simple = new Date(y, 0, 1 + (w - 1) * 7);
-    const dow = simple.getDay();
-    const ISOweekStart = simple;
+    var simple = new Date(y, 0, 1 + (w - 1) * 7);
+    var dow = simple.getDay();
+    var ISOweekStart = simple;
     if (dow <= 4)
-        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+        ISOweekStart.setDate(simple.getDate() - simple.getDay());
     else
-        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        ISOweekStart.setDate(simple.getDate() + 7 - simple.getDay());
     return ISOweekStart;
 }
 

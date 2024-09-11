@@ -153,9 +153,9 @@ class ExpenseManager:
         if isinstance(expense_date, str):
             expense_date = datetime.strptime(expense_date, '%Y-%m-%d')
         
-        # Get the Monday of the week
-        monday = expense_date - timedelta(days=expense_date.weekday())
-        return f"{monday.year}-W{monday.isocalendar()[1]:02d}"
+        # Get the Sunday of the week (considering Sunday as the first day of the week)
+        sunday = expense_date - timedelta(days=expense_date.weekday() + 1)
+        return f"{sunday.year}-W{sunday.isocalendar()[1]:02d}"
 
     def update_status(self, weekly_status, monthly_status, expense, date, budgets):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
@@ -190,8 +190,8 @@ class ExpenseManager:
     def get_current_week_expenses(self):
         expenses = self.load_expenses()
         now = datetime.now()
-        start_of_week = now - timedelta(days=now.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
+        start_of_week = now - timedelta(days=(now.weekday() + 1) % 7)  # Sunday
+        end_of_week = start_of_week + timedelta(days=6)  # Saturday
         
         current_week_expenses = sum(
             expense.amount
