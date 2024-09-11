@@ -121,11 +121,17 @@ class ExpenseManager:
         with open(self.budget_file, 'w') as f:
             json.dump(budgets, f)
 
+    def get_week_start_end(self, date):
+        start = date - timedelta(days=date.weekday())
+        end = start + timedelta(days=6)
+        return start, end
+
     def get_budget_status(self):
         expenses = self.load_expenses()
         budgets = self.load_budgets()
 
         now = datetime.now()
+        current_week_start, current_week_end = self.get_week_start_end(now)
         current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month_start = (current_month_start + timedelta(days=32)).replace(day=1)
 
@@ -136,9 +142,9 @@ class ExpenseManager:
             if isinstance(expense, RecurringExpense):
                 occurrences = expense.get_occurrences(current_month_start.strftime('%Y-%m-%d'), next_month_start.strftime('%Y-%m-%d'))
                 for date in occurrences:
-                    self.update_status(weekly_status, monthly_status, expense, date, budgets)
+                    self.update_status(weekly_status, monthly_status, expense, date, budgets, current_week_start, current_week_end)
             else:
-                self.update_status(weekly_status, monthly_status, expense, expense.date, budgets)
+                self.update_status(weekly_status, monthly_status, expense, expense.date, budgets, current_week_start, current_week_end)
 
         for category, budget in budgets.items():
             monthly_amount = monthly_status[category]['amount']
@@ -149,9 +155,9 @@ class ExpenseManager:
 
         return {"weekly": weekly_status, "total": monthly_status}
 
-    def update_status(self, weekly_status, monthly_status, expense, date, budgets):
+    def update_status(self, weekly_status, monthly_status, expense, date, budgets, current_week_start, current_week_end):
         expense_date = datetime.strptime(date, '%Y-%m-%d')
-        week_start = expense_date - timedelta(days=expense_date.weekday())
+        week_start, week_end = self.get_week_start_end(expense_date)
         week_key = week_start.strftime('%Y-W%W')
 
         if week_key not in weekly_status:
@@ -163,7 +169,7 @@ class ExpenseManager:
         expenses = self.load_expenses()
         summary = []
         end_date = datetime.now().date()
-        start_date = end_date - timedelta(days=num_days)
+        start_date = end_date - timedelta(days=num_days - 1)  # Include today
 
         for i in range(num_days):
             current_date = start_date + timedelta(days=i)
@@ -179,13 +185,12 @@ class ExpenseManager:
     def get_current_week_expenses(self):
         expenses = self.load_expenses()
         now = datetime.now()
-        start_of_week = now - timedelta(days=now.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
+        week_start, week_end = self.get_week_start_end(now)
 
         current_week_expenses = []
         for expense in expenses:
             expense_date = datetime.strptime(expense.date, '%Y-%m-%d')
-            if start_of_week <= expense_date <= end_of_week:
+            if week_start <= expense_date <= week_end:
                 if isinstance(expense, RecurringExpense):
                     if expense.frequency == 'weekly':
                         current_week_expenses.append(expense)
