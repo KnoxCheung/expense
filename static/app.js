@@ -147,8 +147,7 @@ function updateExpenseList() {
         const weekBlock = document.createElement("div");
         weekBlock.className = "mb-4";
         const [year, week] = weekKey.split('-W');
-        const weekStart = new Date(getDateOfISOWeek(parseInt(week), parseInt(year)));
-        weekStart.setDate(weekStart.getDate() - 1); // Adjust to get Sunday
+        const weekStart = getDateOfISOWeek(parseInt(week), parseInt(year));
         weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekKey} (${weekStart.getMonth() + 1}-${weekStart.getDate()})</h3>`;
 
         groupedExpenses[weekKey].forEach((expense) => {
@@ -170,22 +169,17 @@ function updateExpenseList() {
 }
 
 function getWeekKey(date) {
-    // Adjust the date to consider Sunday as the start of the week
-    const adjustedDate = new Date(date.getTime() - 86400000); // Subtract one day (in milliseconds)
-    const year = adjustedDate.getFullYear();
-    const week = getWeekNumber(adjustedDate);
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+    const year = d.getUTCFullYear();
+    const week = getWeekNumber(d);
     return `${year}-W${week.toString().padStart(2, '0')}`;
 }
 
 function getWeekNumber(d) {
-    // Copy date so don't modify original
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    // Set to nearest Thursday: current date + 4 - current day number
-    // Make Sunday's day number 7
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), date.getDate()));
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    // Get first day of year
     var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    // Calculate full weeks to nearest Thursday
     var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return weekNo;
 }
@@ -195,9 +189,9 @@ function getDateOfISOWeek(w, y) {
     var dow = simple.getDay();
     var ISOweekStart = simple;
     if (dow <= 4)
-        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+        ISOweekStart.setDate(simple.getDate() - simple.getDay());
     else
-        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        ISOweekStart.setDate(simple.getDate() + 7 - simple.getDay());
     return ISOweekStart;
 }
 
