@@ -144,31 +144,37 @@ function updateExpenseList() {
 
   const groupedExpenses = expenses.reduce((groups, expense) => {
     const expenseDate = new Date(expense.date);
-    const weekStart = new Date(
-      expenseDate.getFullYear(),
-      expenseDate.getMonth(),
-      expenseDate.getDate() - expenseDate.getDay(),
-    );
-    const weekKey = `${weekStart.getFullYear()}-W${String(weekStart.getWeek()).padStart(2, "0")} (${weekStart.getMonth() + 1}-${String(weekStart.getDate()).padStart(2, "0")})`;
+    const weekStart = new Date(expenseDate);
+    weekStart.setDate(expenseDate.getDate() - expenseDate.getDay() + (expenseDate.getDay() === 0 ? -6 : 1));
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    const weekKey = weekStart.toISOString().split('T')[0];
     if (!groups[weekKey]) {
-      groups[weekKey] = [];
+      groups[weekKey] = {
+        start: weekStart,
+        end: weekEnd,
+        expenses: []
+      };
     }
-    groups[weekKey].push(expense);
+    groups[weekKey].expenses.push(expense);
     return groups;
   }, {});
 
-  const sortedWeeks = Object.keys(groupedExpenses).sort((a, b) =>
-    b.localeCompare(a),
-  );
+  const sortedWeeks = Object.keys(groupedExpenses).sort((a, b) => b.localeCompare(a));
 
   sortedWeeks.forEach((weekKey) => {
+    const weekData = groupedExpenses[weekKey];
     const weekBlock = document.createElement("div");
     weekBlock.className = "mb-4";
-    weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekKey}</h3>`;
+    weekBlock.innerHTML = `<h3 class="font-semibold text-lg mb-2">Week of ${weekData.start.toLocaleDateString()} to ${weekData.end.toLocaleDateString()}</h3>`;
 
-    groupedExpenses[weekKey].forEach((expense, index) => {
+    weekData.expenses.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    weekData.expenses.forEach((expense) => {
       const categoryName = EXPENSE_CATEGORIES.find(
-        (cat) => cat.key === expense.category,
+        (cat) => cat.key === expense.category
       ).name;
       const expenseItem = document.createElement("div");
       expenseItem.className =
@@ -270,13 +276,13 @@ async function updateBudgetStatus() {
     weeklyStatusDiv.innerHTML =
       "<h3 class='text-xl font-semibold mb-4'>Weekly Budget Status</h3>";
 
-    Object.entries(status.weekly).forEach(([week, categories]) => {
+    Object.entries(status.weekly).forEach(([weekStart, weekData]) => {
       const weekDiv = document.createElement("div");
       weekDiv.className = "mb-4 p-4 bg-white rounded shadow";
-      weekDiv.innerHTML = `<h4 class="font-bold text-lg mb-2">Week ${week}</h4>`;
+      weekDiv.innerHTML = `<h4 class="font-bold text-lg mb-2">Week of ${new Date(weekStart).toLocaleDateString()} to ${new Date(weekData.end).toLocaleDateString()}</h4>`;
 
       EXPENSE_CATEGORIES.forEach((category) => {
-        const amount = categories[category.key] || 0;
+        const amount = weekData.expenses[category.key] || 0;
         const weeklyStatus = getStatus(amount, category.budget);
         const statusClass = getStatusClass(weeklyStatus);
 
@@ -355,19 +361,22 @@ async function updateWeeklyReminder() {
 
     const totalWeeklyBudget = EXPENSE_CATEGORIES.reduce(
       (sum, category) => sum + category.budget.normal,
-      0,
+      0
     );
     console.log("Total weekly budget:", totalWeeklyBudget);
 
+    const weekStart = new Date(status.current_week.start);
+    const weekEnd = new Date(status.current_week.end);
+
     let message, className;
     if (currentWeekExpenses < totalWeeklyBudget * 0.8) {
-      message = `Great job! You're saving money this week. Total spent: $${currentWeekExpenses.toFixed(2)}`;
+      message = `Great job! You're saving money this week (${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}). Total spent: $${currentWeekExpenses.toFixed(2)}`;
       className = "text-green-600";
     } else if (currentWeekExpenses <= totalWeeklyBudget) {
-      message = `You're on track with your budget this week. Total spent: $${currentWeekExpenses.toFixed(2)}`;
+      message = `You're on track with your budget this week (${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}). Total spent: $${currentWeekExpenses.toFixed(2)}`;
       className = "text-yellow-600";
     } else {
-      message = `Warning: You're over budget this week. Total spent: $${currentWeekExpenses.toFixed(2)}`;
+      message = `Warning: You're over budget this week (${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}). Total spent: $${currentWeekExpenses.toFixed(2)}`;
       className = "text-red-600";
     }
 
@@ -415,17 +424,6 @@ function showNotification(message, type) {
     notification.remove();
   }, 3000);
 }
-
-// Helper function to get week number
-Date.prototype.getWeek = function () {
-  var d = new Date(
-    Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()),
-  );
-  var dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-};
 
 function displayBudgets(budgets) {
   const budgetContainer = document.getElementById("budgetContainer");
